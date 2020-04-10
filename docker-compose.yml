@@ -14,8 +14,6 @@ services:
 
   kafka:
     build: ./kafka
-    volumes:
-      - ./logs:/tmp/kafka-logs
     networks:
       - baum-kafka
     ports:
@@ -24,4 +22,29 @@ services:
       - zookeeper
     environment:
       - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+
+  producer:
+    build: ./ruby-kafka-producer
+    networks:
+      - baum-kafka
+    depends_on:
+      - zookeeper
+      - kafka
+    environment:
+      - KAFKA_URL=kafka
+      - KAFKA_TOPIC_NAME=timer-log
+      - KAFKA_PRODUCER_VERBOSE=false
+
+  consumer:
+    build: ./ruby-kafka-consumer
+    networks:
+      - baum-kafka
+    depends_on:
+      - zookeeper
+      - kafka
+    environment:
+      - KAFKA_URL=kafka
+      - KAFKA_GROUP_ID=ruby-consumer
+      - KAFKA_TOPIC_NAME=timer-log
+      - KAFKA_CONSUMER_VERBOSE=false
