@@ -1,0 +1,27 @@
+version: '3.1'
+
+networks:
+  baum-kafka:
+    driver: bridge
+
+services:
+  zookeeper:
+    build: ./zookeeper
+    ports:
+      - '2181:2181'
+    networks:
+      - baum-kafka
+
+  kafka:
+    build: ./kafka
+    volumes:
+      - ./logs:/tmp/kafka-logs
+    networks:
+      - baum-kafka
+    ports:
+      - '9092:9092'
+    depends_on:
+      - zookeeper
+    environment:
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
