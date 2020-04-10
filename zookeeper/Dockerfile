@@ -1,10 +1,10 @@
 FROM openjdk:8u212-jre-slim
 
-ENV KAFKA_HOME=/opt/kafka
-ENV PATH=${PATH}:${KAFKA_HOME}/bin
+ENV ZOOKEEPER_HOME=/opt/zookeeper
+ENV PATH=${PATH}:${ZOOKEEPER_HOME}/bin
 
-COPY kafka-files ${KAFKA_HOME}
+COPY zookeeper-files ${ZOOKEEPER_HOME}
 
 EXPOSE 2181
 
-CMD ["zookeeper-server-start.sh", "/opt/kafka/config/zookeeper.properties"]
+CMD ["zkServer.sh",  "start-foreground"]
