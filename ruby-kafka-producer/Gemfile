@@ -6,3 +6,5 @@ git_source(:github) { |repo_name| "https://github.com/#{repo_name}" }
 ruby File.read('.ruby-version')
 
 gem 'ruby-kafka', '~> 1.0'
+
+gem "listen", "~> 3.2"
