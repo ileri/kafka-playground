@@ -1,5 +1,7 @@
 FROM ruby:2.7.0-slim
 
+RUN apt-get update && apt-get install build-essential -y
+
 WORKDIR /producer
 
 COPY .ruby-version Gemfile Gemfile.lock ./
