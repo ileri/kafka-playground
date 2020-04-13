@@ -3,11 +3,14 @@
 # frozen_string_literal: true
 
 require 'kafka'
+require 'listen'
 
 KAFKA_URL = ENV['KAFKA_URL'] || 'localhost:9092'
 TOPIC_NAME = ENV['KAFKA_TOPIC_NAME'] || 'time-log'
 VERBOSE = %w[true yes 1].include? ENV['KAFKA_PRODUCER_VERBOSE'].to_s.downcase
 TIMEOUT = ENV['KAFKA_CONNECT_TIMEOUT'] || 30
+
+LISTEN_DIR = ENV['LISTEN_DIR'] || '/LFS'
 
 def connect_in_timeout(client, timeout)
   1.upto(timeout) do |retry_count|
@@ -33,12 +36,15 @@ def main
   connect_in_timeout kafka, TIMEOUT
   create_topic! kafka, TOPIC_NAME
   producer = kafka.async_producer
-  loop do
-    msg = "#{TOPIC_NAME} : #{Time.now}"
-    producer.produce(msg, topic: TOPIC_NAME)
-    producer.deliver_messages
-    sleep 1
+
+  listener = Listen.to(LISTEN_DIR) do |_, added, _|
+    if added.any?
+      added.each { |e| producer.produce(e, topic: TOPIC_NAME) }
+      producer.deliver_messages
+    end
   end
+  listener.start
+  sleep
 end
 
 main if $PROGRAM_NAME == __FILE__
