@@ -1,53 +1,92 @@
 version: '3.1'
 
 networks:
-  baum-kafka:
+  kafka:
+    driver: bridge
+  application:
     driver: bridge
 
 services:
   zookeeper:
     build: ./zookeeper
-    ports:
-      - '2181:2181'
     networks:
-      - baum-kafka
+      - kafka
 
   kafka:
     build: ./kafka
     networks:
-      - baum-kafka
-    ports:
-      - '9092:9092'
+      - kafka
     depends_on:
       - zookeeper
     environment:
-      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
 
   producer:
     build: ./ruby-kafka-producer
     networks:
-      - baum-kafka
+      - kafka
     depends_on:
-      - zookeeper
       - kafka
     volumes:
       - "./LFS:/LFS"
     environment:
-      - KAFKA_URL=kafka
-      - KAFKA_TOPIC_NAME=timer-log
-      - KAFKA_PRODUCER_VERBOSE=false
-      - LISTEN_DIR=/LFS
+      KAFKA_URL: "kafka"
+      KAFKA_TOPIC_NAME: "timer-log"
+      KAFKA_PRODUCER_VERBOSE: "false"
+      LISTEN_DIR: "/LFS"
 
-  consumer:
-    build: ./ruby-kafka-consumer
+  db:
+    image: postgres
     networks:
-      - baum-kafka
+      - application
+    volumes:
+      - ./rails-consumer-app/tmp/postgresql/data:/var/lib/postgresql/data
+    environment: 
+      POSTGRES_PASSWORD: "postgres"
+
+  redis:
+    image: redis
+    volumes:
+      - ./rails-consumer-app/tmp/redis/data:/var/lib/redis/data
+    networks:
+      - application
+
+  app:
+    build: ./rails-consumer-app
+    networks:
+      - application
     depends_on:
-      - zookeeper
-      - kafka
+      - db
+      - sidekiq
+    volumes:
+      - ./rails-consumer-app:/app
+    ports: 
+      - "3000:3000"
     environment:
-      - KAFKA_URL=kafka
-      - KAFKA_GROUP_ID=ruby-consumer
-      - KAFKA_TOPIC_NAME=timer-log
-      - KAFKA_CONSUMER_VERBOSE=false
+      REDIS_URL: "redis://redis:6379"
+      DATABASE_HOST: "db"
+      DATABASE_USERNAME: "postgres"
+      DATABASE_PASSWORD: "postgres"
+
+  sidekiq:
+    build: ./rails-consumer-app
+    command: 'bundle exec sidekiq'
+    networks:
+      - kafka
+      - application
+    volumes:
+      - ./rails-consumer-app:/app
+    environment:
+      REDIS_URL: "redis://redis:6379"
+      KAFKA_URL: "kafka"
+      KAFKA_TOPIC_NAME: "timer-log"
+      KAFKA_GROUP_ID: "ruby-consumer"
+      KAFKA_CONSUMER_VERBOSE: "false"
+      DATABASE_HOST: "db"
+      DATABASE_USERNAME: "postgres"
+      DATABASE_PASSWORD: "postgres"
+    depends_on:
+      - kafka
+      - db
+      - redis
