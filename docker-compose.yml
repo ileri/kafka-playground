@@ -31,10 +31,13 @@ services:
     depends_on:
       - zookeeper
       - kafka
+    volumes:
+      - "./LFS:/LFS"
     environment:
       - KAFKA_URL=kafka
       - KAFKA_TOPIC_NAME=timer-log
       - KAFKA_PRODUCER_VERBOSE=false
+      - LISTEN_DIR=/LFS
 
   consumer:
     build: ./ruby-kafka-consumer
