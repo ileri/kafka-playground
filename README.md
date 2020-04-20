@@ -1,4 +1,4 @@
-# BAUM Kafka
+# Kafka Playground
 
 Steps
 
