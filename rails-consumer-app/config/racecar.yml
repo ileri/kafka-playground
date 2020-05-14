@@ -1,0 +1,15 @@
+# These config values will be shared by all environments but can be overridden.
+common: &common
+  client_id: "consumer_app"
+  brokers:
+    - kafka:9092
+
+development:
+  <<: *common
+  
+
+test:
+  <<: *common
+
+production:
+  <<: *common
