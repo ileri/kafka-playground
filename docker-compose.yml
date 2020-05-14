@@ -32,7 +32,7 @@ services:
       - "./LFS:/LFS"
     environment:
       KAFKA_URL: "kafka"
-      KAFKA_TOPIC_NAME: "timer-log"
+      KAFKA_TOPIC_NAME: "new-files"
       KAFKA_PRODUCER_VERBOSE: "false"
       LISTEN_DIR: "/LFS"
 
@@ -45,48 +45,35 @@ services:
     environment: 
       POSTGRES_PASSWORD: "postgres"
 
-  redis:
-    image: redis
-    volumes:
-      - ./rails-consumer-app/tmp/redis/data:/var/lib/redis/data
-    networks:
-      - application
-
   app:
     build: ./rails-consumer-app
     networks:
       - application
     depends_on:
       - db
-      - sidekiq
     volumes:
       - ./rails-consumer-app:/app
     ports: 
       - "3000:3000"
     environment:
-      REDIS_URL: "redis://redis:6379"
       DATABASE_HOST: "db"
       DATABASE_USERNAME: "postgres"
       DATABASE_PASSWORD: "postgres"
 
-  sidekiq:
+  racecar:
     build: ./rails-consumer-app
-    command: 'bundle exec sidekiq'
+    command: 'bundle exec racecar NewFileListenerConsumer'
     networks:
       - kafka
       - application
     volumes:
       - ./rails-consumer-app:/app
     environment:
-      REDIS_URL: "redis://redis:6379"
       KAFKA_URL: "kafka"
-      KAFKA_TOPIC_NAME: "timer-log"
-      KAFKA_GROUP_ID: "ruby-consumer"
-      KAFKA_CONSUMER_VERBOSE: "false"
+      KAFKA_TOPIC_NAME: "new-files"
       DATABASE_HOST: "db"
       DATABASE_USERNAME: "postgres"
       DATABASE_PASSWORD: "postgres"
     depends_on:
       - kafka
       - db
-      - redis
